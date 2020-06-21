@@ -1,5 +1,7 @@
 ## Graphs
 
+import strutils
+import sequtils
 import tables
 
 type
@@ -27,3 +29,20 @@ proc get_score*(node: Node): int =
 
 proc is_fail*(node: Node): bool =
   return node.fail
+
+proc add_pair(graph: var Graph; a, b: int) =
+  if graph.hasKey(a):
+    graph[a].adj.add(b)
+  else:
+    graph[a] = Node(fail: false, score: 0, adj: @[b])
+
+proc load*(filename: string; directed = false): Graph =
+  for line in lines(filename):
+    let nums = splitWhitespace(line).map(parseint)
+    assert(nums.len() == 2)
+    result.add_pair(nums[0], nums[1])
+    if not directed: result.add_pair(nums[1], nums[0])
+
+proc `$`*(graph: Graph): string =
+  for (id, node) in graph.pairs:
+    result.add("$# has a score of $# and knows $# others\p" % [$id, $node.score, $node.adj.len])
