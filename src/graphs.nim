@@ -34,7 +34,8 @@ proc add_pair(graph: var Graph; a, b: int) =
   if graph.hasKey(a):
     graph[a].adj.add(b)
   else:
-    graph[a] = Node(fail: false, score: 0, adj: @[b])
+    graph[a] = Node(adj: @[b])
+  if not graph.hasKey(b): graph[b] = Node()
 
 proc load*(filename: string; directed = false): Graph =
   for line in lines(filename):
