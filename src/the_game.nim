@@ -3,6 +3,7 @@
 import tables
 import sequtils
 import graphs
+import selectors
 
 proc init(graph: var Graph; seed: proc(nodes: openarray[int]): seq[int]) =
   for id in toSeq(graph.keys).seed():
