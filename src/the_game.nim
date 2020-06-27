@@ -5,11 +5,18 @@ import sequtils
 import graphs
 import selectors
 import stats
+import os
+import strformat
+import strutils
 
 const
   fail_filename = "fails.csv"
   score_filename = "scores.csv"
   avg_edge_by_score_filename = "edge_by_score.csv"
+
+proc `++`(x: var int): int =
+  x = x + 1
+  return x
 
 proc init*(graph: var Graph; seed: proc(nodes: openarray[int]): seq[int]) =
   for id in toSeq(graph.keys).seed():
@@ -76,5 +83,81 @@ proc run*(graph: var Graph; num_trials: int; seed, spread: proc(nodes: openarray
     avg_edge_by_score_file.write("\p")
   echo "Done!"
 
-var graph = load("networks\\facebook_combined.txt")
-graph.run(100, random(1), percent(0.1))
+when isMainModule:
+  if paramCount() == 0:
+    echo &"""
+The Game: A model of how the game is spread
+By swag31415 @ https://github.com/swag31415
+
+Usage: {getAppFilename().extractFilename()} Network_txt_file [is_directed] seeding_algorithm [opts] spreading_algorithm [opts] iterations
+
+Ex: {getAppFilename().extractFilename()} datafile.txt true random 1 random 2 1000
+   
+    Would pick one random node from the directed network in
+    datafile.txt and for 1000 iterations run a simulation of
+    The Game where every loser tells two random other nodes
+    about the game.
+
+Available algorithms:
+
+  first                   Just grabs the first node
+  random     [number]     Gets a random `number` nodes
+  percent    [percent]    Gets a random `percent` of nodes
+                          `percent` is just a number between 0 and 1
+                          Ex: 0.625
+Text file format:
+
+  The text file is a collection of edges. Each line contains
+  one edge which is defined as two integers (the nodes) seperated
+  by a space. For a directed network the edge goes from the
+  first node to the second.
+  Ex:              would be:
+    1 ------- 2             1 2
+    |         |             3 4
+    |         |             2 4
+    3 ------- 4             1 3
+
+  And a directed   would be:
+  network:                  2 1
+    1 <-----> 2             1 2
+    |         |             4 3
+    V         V             1 3
+    3 <------ 4             2 4
+"""
+  else:
+    var
+      net_file: string
+      is_directed: bool
+      seed, spread: proc(nodes: openarray[int]): seq[int]
+      iterations: int
+      p = 0
+    net_file = paramStr(++p)
+    try: is_directed = paramStr(++p).parseBool()
+    except:
+      echo "Invalid entry for is_bool. Run with no command line arguments for help"
+      quit(QuitFailure)
+    try:
+      case paramStr(++p).toLower():
+        of "first": seed = first()
+        of "random": seed = random(paramStr(++p).parseInt())
+        of "percent": seed = percent(paramStr(++p).parseFloat())
+        else: raise newException(OSError, "")
+    except:
+      echo "Invalid entry for seeding_algrithm or opt. Run with no command line arguments for help"
+      quit(QuitFailure)
+    try:
+      case paramStr(++p).toLower():
+        of "first": spread = first()
+        of "random": spread = random(paramStr(++p).parseInt())
+        of "percent": spread = percent(paramStr(++p).parseFloat())
+        else: raise newException(OSError, "")
+    except:
+      echo "Invalid entry for spreading_algrithm or opt. Run with no command line arguments for help"
+      quit(QuitFailure)
+    try: iterations = paramStr(++p).parseInt()
+    except:
+      echo "Invalid entry for number of iterations. Run with no command line arguments for help"
+      quit(QuitFailure)
+
+    var graf = load(net_file, is_directed)
+    graf.run(iterations, seed, spread)
